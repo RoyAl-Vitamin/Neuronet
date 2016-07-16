@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import javax.imageio.ImageIO;
 
@@ -25,7 +26,7 @@ public class Neuronet {
 
 	static double EPS = 1E-4; // Точность
 
-	static double ny = 0.75; // Скорость обучения
+	static double ny = 0.75; // Скорость обучения - число из [0.7; 0.9]
 
 	static int tye = 0; // Глобальный счётчик
 
@@ -38,52 +39,74 @@ public class Neuronet {
 
 		loadImg(); // Загрузка исходных образов для обучения
 
-		//Y = noise("_А.png", 0.8); // 0.9 => 90 %
+		Y = noise("4.png", 0.9); // 0.9 => 90 %
 
 		//save(Y);
-		Y = load("_4.png"); // Загрузка зашумлённого образа
+		//Y = load("_4.png"); // Загрузка зашумлённого образа
 		//Y = load("_Н.png"); // Загрузка зашумлённого образа
 
 		initW(); // инициализация матрицы W (задание размеров и заполнение её 0-ми)
 
 		int rt = 2; // переменная выбора метода обучения сети
 
+		List<Double> result = null;
 		switch (rt) {
 		case 0:
-			byHebb(); // по правилу обучения Хебба
+			result = byHebb(); // по правилу обучения Хебба
 			break;
 		case 1:
-			byProjection(); // обучение по методу проекций 
+			result = byProjection(); // обучение по методу проекций 
 			break;
 		case 2:
-			byDeltaProjection(); // обучение по методу Delta-проекций
+			result = byDeltaProjection(); // обучение по методу Delta-проекций
 			break;
 		default:
-			byStandart(); // по стандартному правилу обучения W = Summ[ X_i^T X_i ]
+			result = byStandart(); // по стандартному правилу обучения W = Summ[ X_i^T X_i ]
+		}
+		analyze(result);
+	}
+
+	/**
+	 * Сравнивает по норме результат работы нейросети с обучающей выборкой
+	 * @param result результат работы нейросети
+	 */
+	private static void analyze(List<Double> result) {
+		List<Double> diff = new ArrayList<>(n);
+		for (int i = 0; i < n; i++)
+			diff.add(0.0);
+		for (int t = 0; t < liX.size(); t++) {
+			for (int i = 0; i < n; i++) {
+				diff.set(i, Math.abs(liX.get(t).get(i) - result.get(i)));
+			}
+			double norm  = norm(diff);
+			System.out.println("norm(" + imageName[t] + " - result) == " + norm + " количество отличающихся пикслей == " + Math.round(Math.pow(norm / 2, 2)));
 		}
 	}
 
 	/**
 	 * сделаем зашумление исходному образу
 	 * @param sValue имя исходного образа
-	 * @param x доля зашмления
+	 * @param p вероятность того, что цвет останется тем же
 	 * @return вектор зашумлённого изображения
 	 */
-	private static List<Double> noise(String sValue, double x) {
-		// UNDONE пока просто делает изображение более блеклым, подумать над M * X
-		if (x > 1) x = 1;
-		if (x < 0) x = 0;
+	private static List<Double> noise(String sValue, double p) {
+
+		if (p > 1) p = 1;
+		if (p < 0) p = 0;
 		List<Double> liTemp = load(sValue); // загрузим изначальное изображение
 
-		/* будем перемножать матрицу M, у которой на диагонали будет x * length[-1;1] / length[0;1] - 1, на вектор исходного изображения liTemp
-		 * фактически liTemp[i] * (2 * x - 1)
-		 */
-		for (int i = 0; i < liTemp.size(); i++) // зашумим
-			liTemp.set(i, liTemp.get(i) * (2 * x - 1));
+		Random r = new Random();
+		/* Будем брать рандомное число r in [0;1) и сравнивать его с верояностью p смены цвета */
+		for (int i = 0; i < liTemp.size(); i++) {// зашумим
+			if (r.nextDouble() > p) // Если больше, то поменяем текущую компоненту на другой цвет
+				liTemp.set(i, liTemp.get(i) * -1);
+			// Иначе, пусть она останется такого же цвета
+		}
+		save(liTemp, "noise_" + sValue);
 		return liTemp;
 	}
 
-	private static void byStandart() {
+	private static List<Double> byStandart() {
 
 		System.out.println("Метод обучения по стандарту W = Summ[ X_i^T X_i ]");
 		System.out.println("Максимально количество образов, которые может запомнить нейронная сеть == " + (int)(n * Math.log(2) / (2 * Math.log(n))));
@@ -142,11 +165,11 @@ public class Neuronet {
 			if (b) break; // выход из внешнего цикла
 			k++;
 		}
-		save(liY_new);
-		
+		save(liY_new, null);
+		return liY_new;
 	}
 
-	private static void byDeltaProjection() {
+	private static List<Double> byDeltaProjection() {
 
 		System.out.println("Метод обучения Дельта проекций");
 
@@ -205,10 +228,11 @@ public class Neuronet {
 			if (b) break; // выход из внешнего цикла
 			k++;
 		}
-		save(liY_new);
+		save(liY_new, null);
+		return liY_new;
 	}
 
-	private static void byProjection() {
+	private static List<Double> byProjection() {
 
 		System.out.println("Метод обучения проекциями, ёмкость сети == " + (n - 1));
 
@@ -267,11 +291,12 @@ public class Neuronet {
 			if (b) break; // выход из внешнего цикла
 			k++;
 		}
-		save(liY_new);
+		save(liY_new, null);
+		return liY_new;
 	}
 
 
-	private static void byHebb() {
+	private static List<Double> byHebb() {
 
 		System.out.println("Метод обучения по правилу Хебба");
 		System.out.println("При Eps = 0.01 ёмкость сети == " + (int)(0.138 * n));
@@ -376,7 +401,8 @@ public class Neuronet {
 			if (b) break; // выход из внешнего цикла
 			k++;
 		}
-		save(liY_new);
+		save(liY_new, null);
+		return liY_new;
 	}
 
 	/**
@@ -726,7 +752,7 @@ public class Neuronet {
 	 * Вывод вектора в изображение
 	 * @param liY_new входящий вектор
 	 */
-	private static void save(List<Double> liY_new) {
+	private static void save(List<Double> liY_new, String name) {
 		BufferedImage img = new BufferedImage((int) Math.sqrt(n), (int) Math.sqrt(n), BufferedImage.TYPE_INT_RGB);
 		int k = 0;
 		int rgb;
@@ -738,7 +764,11 @@ public class Neuronet {
 				k++;
 			}
 		try {
-		    File outputfile = new File("outputImg_Step_" + (tye++) + ".png");
+			File outputfile = null;
+			if (name == null)
+				outputfile = new File("outputImg_Step_" + (tye++) + ".png");
+			else
+				outputfile = new File(name);
 		    ImageIO.write(img, "png", outputfile);
 		} catch (IOException e) { // когда чёт не пошло
 			System.err.println("Так получилось в общем, что кажись файл не захотел создаваться");
