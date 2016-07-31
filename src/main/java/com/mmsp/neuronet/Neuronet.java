@@ -4,10 +4,7 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
-
 import javax.imageio.ImageIO;
 
 public class Neuronet {
@@ -16,11 +13,13 @@ public class Neuronet {
 
 	static String[] imageName = {"0.png", "1.png", "2.png", "3.png", "4.png", "5.png", "6.png", "7.png", "8.png", "9.png"};
 
-	static List<ArrayList<Double>> liX = new ArrayList<ArrayList<Double>>(); // массив массива разложенных по цвету картинок (обучающих выборок)
+	//static String[] imageName = {"processedS/вс_1.png", "processedS/вс_2.png", "processedS/вс_3.png", "processedS/вс_4.png", "processedS/дс_1.png", "processedS/дс_2.png", "processedS/пп_1.png", "processedS/пп_2.png", "processedS/пп_3.png", "processedS/пп_4.png"};
 
-	static List<ArrayList<Double>> W = new ArrayList<ArrayList<Double>>(); // Обучающая матрица синоптических весов
+	static double liX[][] = new double[imageName.length][]; // массив массива разложенных по цвету картинок (обучающих выборок)
 
-	static List<Double> Y = null; // вектор с шумами, который будем распознавать
+	static double W[][]; // Обучающая матрица синоптических весов
+
+	static double Y[]; // вектор с шумами, который будем распознавать
 
 	static int n; // количество нейронов = количеству элементов в строке иил столбце матрицы W
 
@@ -39,44 +38,46 @@ public class Neuronet {
 
 		loadImg(); // Загрузка исходных образов для обучения
 
-		Y = noise("4.png", 0.9); // 0.9 => 90 %
+		for (int ew = 0; ew < 10; ew++) {
 
-		//save(Y);
-		//Y = load("_4.png"); // Загрузка зашумлённого образа
-		//Y = load("_Н.png"); // Загрузка зашумлённого образа
-
-		initW(); // инициализация матрицы W (задание размеров и заполнение её 0-ми)
-
-		int rt = 2; // переменная выбора метода обучения сети
-
-		List<Double> result = null;
-		switch (rt) {
-		case 0:
-			result = byHebb(); // по правилу обучения Хебба
-			break;
-		case 1:
-			result = byProjection(); // обучение по методу проекций 
-			break;
-		case 2:
-			result = byDeltaProjection(); // обучение по методу Delta-проекций
-			break;
-		default:
-			result = byStandart(); // по стандартному правилу обучения W = Summ[ X_i^T X_i ]
+			Y = noise("2.png", 0.9); // 0.9 => 90 %
+	
+			//save(Y);
+			//Y = load("processedS/вс_1.png"); // Загрузка зашумлённого образа
+			//Y = load("_Н.png"); // Загрузка зашумлённого образа
+	
+			initW(); // инициализация матрицы W (задание размеров и заполнение её 0-ми)
+	
+			int rt = 1; // переменная выбора метода обучения сети
+	
+			double result[] = null;
+			switch (rt) {
+			case 0:
+				result = byHebb(); // по правилу обучения Хебба
+				break;
+			case 1:
+				result = byProjection(); // обучение по методу проекций 
+				break;
+			case 2:
+				result = byDeltaProjection(); // обучение по методу Delta-проекций
+				break;
+			default:
+				result = byStandart(); // по стандартному правилу обучения W = Summ[ X_i^T X_i ]
+			}
+			analyze(result);
 		}
-		analyze(result);
 	}
 
 	/**
 	 * Сравнивает по норме результат работы нейросети с обучающей выборкой
 	 * @param result результат работы нейросети
 	 */
-	private static void analyze(List<Double> result) {
-		List<Double> diff = new ArrayList<>(n);
-		for (int i = 0; i < n; i++)
-			diff.add(0.0);
-		for (int t = 0; t < liX.size(); t++) {
+	private static void analyze(double[] result) {
+		System.out.println("Эксперимент №" + tye++);
+		double diff[] = new double[n];
+		for (int t = 0; t < liX.length; t++) {
 			for (int i = 0; i < n; i++) {
-				diff.set(i, Math.abs(liX.get(t).get(i) - result.get(i)));
+				diff[i] = Math.abs(liX[t][i] - result[i]);
 			}
 			double norm  = norm(diff);
 			System.out.println("norm(" + imageName[t] + " - result) == " + norm + " количество отличающихся пикслей == " + Math.round(Math.pow(norm / 2, 2)));
@@ -89,33 +90,34 @@ public class Neuronet {
 	 * @param p вероятность того, что цвет останется тем же
 	 * @return вектор зашумлённого изображения
 	 */
-	private static List<Double> noise(String sValue, double p) {
+	private static double[] noise(String sValue, double p) {
 
 		if (p > 1) p = 1;
 		if (p < 0) p = 0;
-		List<Double> liTemp = load(sValue); // загрузим изначальное изображение
+		double liTemp[] = load(sValue); // загрузим изначальное изображение
 
 		Random r = new Random();
 		/* Будем брать рандомное число r in [0;1) и сравнивать его с верояностью p смены цвета */
-		for (int i = 0; i < liTemp.size(); i++) {// зашумим
+		for (int i = 0; i < liTemp.length; i++) {// зашумим
 			if (r.nextDouble() > p) // Если больше, то поменяем текущую компоненту на другой цвет
-				liTemp.set(i, liTemp.get(i) * -1);
+				liTemp[i] *= -1;
 			// Иначе, пусть она останется такого же цвета
 		}
-		save(liTemp, "noise_" + sValue);
+		save(liTemp, "noise_" + tye + "_" + sValue);
 		return liTemp;
 	}
 
-	private static List<Double> byStandart() {
+	private static double[] byStandart() {
 
 		System.out.println("Метод обучения по стандарту W = Summ[ X_i^T X_i ]");
 		System.out.println("Максимально количество образов, которые может запомнить нейронная сеть == " + (int)(n * Math.log(2) / (2 * Math.log(n))));
 
 		learnStandart();
 
-		List<Double> liY_new = new ArrayList<>(n); // на новом шаге
-		List<Double> liY_old = new ArrayList<>(n); // на предыдущем шаге
-		for (Double i : Y) {liY_new.add(i); liY_old.add(i);} // скопируем вектор Y
+		double[] liY_new = new double[n]; // на новом шаге
+		double[] liY_old = new double[n]; // на предыдущем шаге
+		
+		for (int i = 0; i < Y.length; i++) liY_new[i] = liY_old[i] = Y[i]; // скопируем вектор Y
 
 		/*for (int i = 0; i < imageName.length; i++) // Выведем ветора, посмотрим чё там
 			writeVector(liX.get(i));
@@ -126,21 +128,21 @@ public class Neuronet {
 
 		while (true) {
 
-			for (int i = 0; i < liY_old.size(); i++) liY_old.set(i, liY_new.get(i)); // перекопируем в старый вектор из нового
+			for (int i = 0; i < liY_old.length; i++) liY_old[i] = liY_new[i]; // перекопируем в старый вектор из нового
 			// перемножаем W и Y
 			for (int i = 0; i < n; i++) { // бежим по строкам матрицы W
 				int summ = 0;
 				for (int j = 0; j < n; j++) { // по компонентам вектора Y
-					summ += W.get(i).get(j) * liY_old.get(j);
+					summ += W[i][j] * liY_old[j];
 				}
 				// Y = sign(Y)
-				if (summ >= 0) liY_new.set(i, 1.0); else liY_new.set(i, -1.0); // ступенчатая функция
+				if (summ >= 0) liY_new[i] = 1.0; else liY_new[i] = -1.0; // ступенчатая функция
 			}
 
 			boolean b = false;
 
-			List<Double> liRES = new ArrayList<>(n);
-			for (int i = 0; i < n; i++) liRES.add(liY_new.get(i) - liY_old.get(i));
+			double liRES[] = new double[n];
+			for (int i = 0; i < n; i++) liRES[i] = liY_new[i] - liY_old[i];
 			if (norm(liRES) < EPS) {
 				System.err.println("Свалился в ложный аттрактор norm == " + norm(liRES)); // Проверка неравенста векторов
 				b = true;
@@ -148,10 +150,10 @@ public class Neuronet {
 
 			//save(liY_new);
 			if (!b)
-				for (int i = 0; i < liX.size(); i++) { // условие выхода из цикла
+				for (int i = 0; i < liX.length; i++) { // условие выхода из цикла
 	
-					List<Double> liDiff = new ArrayList<>(n); // вектор разности _Y and _Y*
-					for (int j = 0; j < n; j++) liDiff.add(liY_new.get(j) - liX.get(i).get(j));
+					double liDiff[] = new double[n]; // вектор разности _Y and _Y*
+					for (int j = 0; j < n; j++) liDiff[j] = liY_new[j] - liX[i][j];
 	
 					double currNorm = norm(liDiff); // Подсчёт нормы от разности 2-ух векторов
 	
@@ -169,18 +171,18 @@ public class Neuronet {
 		return liY_new;
 	}
 
-	private static List<Double> byDeltaProjection() {
+	private static double[] byDeltaProjection() {
 
 		System.out.println("Метод обучения Дельта проекций");
 
 		learnDeltaProjection();
 
-		List<Double> liY_new = new ArrayList<>(n); // на новом шаге
-		List<Double> liY_old = new ArrayList<>(n); // на предыдущем шаге
-		for (Double i : Y) {liY_new.add(i); liY_old.add(i);} // скопируем вектор Y
+		double liY_new[] = new double[n]; // на новом шаге
+		double liY_old[] = new double[n]; // на предыдущем шаге
+		for (int i = 0; i < Y.length; i++) liY_new[i] = liY_old[i] = Y[i]; // скопируем вектор Y
 
 		/*for (int i = 0; i < imageName.length; i++) // Выведем ветора, посмотрим чё там
-			writeVector(liX.get(i));
+			writeVector(liX[i]);
 		writeVector(Y);*/
 
 		double minNorm = EPS + 1;
@@ -188,33 +190,33 @@ public class Neuronet {
 
 		while (true) {
 
-			for (int i = 0; i < n; i++) liY_old.set(i, liY_new.get(i)); // перекопируем в старый вектор из "нового"
+			for (int i = 0; i < n; i++) liY_old[i] = liY_new[i]; // перекопируем в старый вектор из "нового"
 
 			// перемножаем W и Y
 			for (int i = 0; i < n; i++) { // бежим по строкам матрицы W
 				double summ = 0;
 				for (int j = 0; j < n; j++) { // по компонентам вектора Y
-					summ += W.get(i).get(j) * liY_new.get(j);
+					summ += W[i][j] * liY_new[j];
 				}
 				// Y = sign(Y)
-				if (summ >= 0) liY_new.set(i, 1.0); else liY_new.set(i, -1.0);
+				if (summ >= 0) liY_new[i] = 1.0; else liY_new[i] = -1.0;
 			}
 
 			boolean b = false;
 
-			List<Double> liRES = new ArrayList<>(n);
-			for (int i = 0; i < n; i++) liRES.add(liY_new.get(i) - liY_old.get(i));
+			double liRES[] = new double[n];
+			for (int i = 0; i < n; i++) liRES[i] = liY_new[i] - liY_old[i];
 			if (norm(liRES) < EPS) {
 				System.err.println("Свалился в ложный аттрактор norm(Y_old - Y_new) == " + norm(liRES) + " на шаге k == " + k); // Проверка неравенста векторов
 				b = true;
 			}
-			//save(liY_new);
+			//save(liY_new, null);
 
 			if (!b)
-				for (int i = 0; i < liX.size(); i++) { // условие выхода из цикла
+				for (int i = 0; i < liX.length; i++) { // условие выхода из цикла
 	
-					List<Double> liDiff = new ArrayList<>(n); // вектор разности _Y and _Y*
-					for (int j = 0; j < n; j++) liDiff.add(liY_new.get(j) - liX.get(i).get(j));
+					double liDiff[] = new double[n]; // вектор разности _Y and _Y*
+					for (int j = 0; j < n; j++) liDiff[j] = liY_new[j] - liX[i][j];
 	
 					double currNorm = norm(liDiff); // Подсчёт нормы от разности 2-ух векторов
 	
@@ -232,18 +234,18 @@ public class Neuronet {
 		return liY_new;
 	}
 
-	private static List<Double> byProjection() {
+	private static double[] byProjection() {
 
 		System.out.println("Метод обучения проекциями, ёмкость сети == " + (n - 1));
 
 		learnProjection();
 
-		List<Double> liY_new = new ArrayList<>(n); // на новом шаге
-		List<Double> liY_old = new ArrayList<>(n); // на предыдущем шаге
-		for (Double i : Y) {liY_new.add(i); liY_old.add(i);} // скопируем вектор Y
+		double liY_new[] = new double[n]; // на новом шаге
+		double liY_old[] = new double[n]; // на предыдущем шаге
+		for (int i = 0; i < Y.length; i++) liY_new[i] = liY_old[i] = Y[i]; // скопируем вектор Y
 
 		/*for (int i = 0; i < imageName.length; i++) // Выведем ветора, посмотрим чё там
-			writeVector(liX.get(i));
+			writeVector(liX[i]);
 		writeVector(Y);*/
 
 		double minNorm = EPS + 1;
@@ -251,33 +253,33 @@ public class Neuronet {
 
 		while (true) {
 
-			for (int i = 0; i < n; i++) liY_old.set(i, liY_new.get(i)); // перекопируем в старый вектор из "нового"
+			for (int i = 0; i < n; i++) liY_old[i] = liY_new[i]; // перекопируем в старый вектор из "нового"
 
 			// перемножаем W и Y
 			for (int i = 0; i < n; i++) { // бежим по строкам матрицы W
 				double summ = 0;
 				for (int j = 0; j < n; j++) { // по компонентам вектора Y
-					summ += W.get(i).get(j) * liY_new.get(j);
+					summ += W[i][j] * liY_new[j];
 				}
 				// Y = sign(Y)
-				if (summ >= 0) liY_new.set(i, 1.0); else liY_new.set(i, -1.0);
+				if (summ >= 0) liY_new[i] = 1.0; else liY_new[i] = -1.0;
 			}
 
 			boolean b = false;
 
-			List<Double> liRES = new ArrayList<>(n);
-			for (int i = 0; i < n; i++) liRES.add(liY_new.get(i) - liY_old.get(i));
+			double liRES[] = new double[n];
+			for (int i = 0; i < n; i++) liRES[i] = liY_new[i] - liY_old[i];
 			if (norm(liRES) < EPS) {
 				System.err.println("Свалился в ложный аттрактор norm(Y_old - Y_new) == " + norm(liRES) + " на шаге k == " + k); // Проверка неравенста векторов
 				b = true;
 			}
-			//save(liY_new);
+			//save(liY_new, null);
 
 			if (!b)
-				for (int i = 0; i < liX.size(); i++) { // условие выхода из цикла
+				for (int i = 0; i < liX.length; i++) { // условие выхода из цикла
 	
-					List<Double> liDiff = new ArrayList<>(n); // вектор разности _Y and _Y*
-					for (int j = 0; j < n; j++) liDiff.add(liY_new.get(j) - liX.get(i).get(j));
+					double liDiff[] = new double[n]; // вектор разности _Y and _Y*
+					for (int j = 0; j < n; j++) liDiff[j] = liY_new[j] - liX[i][j];
 	
 					double currNorm = norm(liDiff); // Подсчёт нормы от разности 2-ух векторов
 	
@@ -296,98 +298,83 @@ public class Neuronet {
 	}
 
 
-	private static List<Double> byHebb() {
+	private static double[] byHebb() {
 
 		System.out.println("Метод обучения по правилу Хебба");
 		System.out.println("При Eps = 0.01 ёмкость сети == " + (int)(0.138 * n));
 
 		learnHebb();
 
-		List<Double> liY_new = new ArrayList<>(n); // на новом шаге
-		List<Double> liY_old = new ArrayList<>(n); // на предыдущем шаге
-		for (Double i : Y) {liY_new.add(i); liY_old.add(i);} // скопируем вектор Y
+		double liY_new[] = new double[n]; // на новом шаге
+		double liY_old[] = new double[n]; // на предыдущем шаге
+		for (int i = 0; i < Y.length; i++) liY_new[i] = liY_old[i] = Y[i]; // скопируем вектор Y
 
 		/*for (int i = 0; i < imageName.length; i++) // Выведем ветора, посмотрим чё там
-			writeVector(liX.get(i));
+			writeVector(liX[i]);
 		writeVector(Y);*/
 
 		double minNorm = EPS + 1;
 		int k = 0;
 
-		/**/
-		List<ArrayList<Double>> W_old = new ArrayList<ArrayList<Double>>();
-		for (int i = 0; i < n; i++) {
-			List<Double> liRow = new ArrayList<>(n);
-			for (int j = 0; j < n; j++)
-				liRow.add(0.0);
-			W_old.add((ArrayList<Double>) liRow);
-		}
-		/**/
+		double W_old[][] = new double[n][n];
 
 		while (true) {
 
-			for (int i = 0; i < liY_old.size(); i++) liY_old.set(i, liY_new.get(i)); // перекопируем в старый вектор из "нового"
+			for (int i = 0; i < liY_old.length; i++) liY_old[i] = liY_new[i]; // перекопируем в старый вектор из "нового"
 
-			/**/
 			// перекопируем значение матрицы W_old
-			for (int i = 0; i < W.size(); i++)
-				for (int j = 0; j < W.get(i).size(); j++)
-					W_old.get(i).set(j, W.get(i).get(j));
-			/**/
+			for (int i = 0; i < W.length; i++)
+				for (int j = 0; j < W[i].length; j++)
+					W_old[i][j] = W[i][j];
+
 			// перемножаем W и Y
 			for (int i = 0; i < n; i++) { // бежим по строкам матрицы W
 				double summ = 0;
 				for (int j = 0; j < n; j++) { // по компонентам вектора Y
-					summ += W.get(i).get(j) * liY_new.get(j);
+					summ += W[i][j] * liY_new[j];
 				}
 				// Y = sign(Y)
-				if (summ >= 0) liY_new.set(i, 1.0); else liY_new.set(i, -1.0);
+				if (summ >= 0) liY_new[i] = 1.0; else liY_new[i] = -1.0;
 			}
 
 			/* переобучение по гипотезе Хебба*/
 			// W(i+1) = W(i) + dW
-			for (int i = 0; i < W.size(); i++)
-				for (int j = 0; j < W.get(i).size(); j++) {
-					W.get(i).set(j, W.get(i).get(j) + ny * liY_new.get(i) * liY_old.get(j));
+			for (int i = 0; i < W.length; i++)
+				for (int j = 0; j < W[i].length; j++) {
+					W[i][j] = W[i][j] + ny * liY_new[i] * liY_old[j];
 				}
 
 			/* переобучение по гипотезе ковариации*/
 			// W(i+1) = W(i) + dW
-			/*for (int i = 0; i < W.size(); i++)
-				for (int j = 0; j < W.get(i).size(); j++) {
-					W.get(i).set(j, W.get(i).get(j) + ny * (liY_new.get(i) - avg(liY_new)) * (liY_old.get(j) - avg(liY_old)));
+			/*for (int i = 0; i < W.length; i++)
+				for (int j = 0; j < W[i].length; j++) {
+					W[i][j] = W[i][j] + ny * (liY_new[i] - avg(liY_new)) * (liY_old[j] - avg(liY_old));
 				}*/
 
-			/**/
+
 			// Посмотрим разницу после переобучения
-			List<ArrayList<Double>> W_temp = new ArrayList<ArrayList<Double>>();
-			for (int i = 0; i < n; i++) {
-				List<Double> liRow = new ArrayList<>(n);
-				for (int j = 0; j < n; j++)
-					liRow.add(0.0);
-				W_temp.add((ArrayList<Double>) liRow);
-			}
-			for (int i = 0; i < W.size(); i++)
-				for (int j = 0; j < W.get(i).size(); j++)
-					W_temp.get(i).set(j, Math.abs(W.get(i).get(j) - W_old.get(i).get(j)));
+			double W_temp[][] = new double[n][n];
+
+			for (int i = 0; i < W.length; i++)
+				for (int j = 0; j < W[i].length; j++)
+					W_temp[i][j] = Math.abs(W[i][j] - W_old[i][j]);
 			System.out.println("Норма разности матриц W_i и W_i-1 == " + normMatrix(W_temp)); // без обучения даёт 0, с обучением даёт около 75, в чём подвох?
-			/**/
 
 			boolean b = false;
 
-			List<Double> liRES = new ArrayList<>(n);
-			for (int i = 0; i < n; i++) liRES.add(liY_new.get(i) - liY_old.get(i));
+			double liRES[] = new double[n];
+			for (int i = 0; i < n; i++) liRES[i] = liY_new[i] - liY_old[i];
 			if (norm(liRES) < EPS) {
 				System.err.println("Свалился в ложный аттрактор norm(Y_old - Y_new) == " + norm(liRES)); // Проверка неравенста векторов
 				b = true;
 			}
-			//save(liY_new);
+			//save(liY_new, null);
 
 			if (!b)
-				for (int i = 0; i < liX.size(); i++) { // условие выхода из цикла
+				for (int i = 0; i < liX.length; i++) { // условие выхода из цикла
 	
-					List<Double> liDiff = new ArrayList<>(n); // вектор разности _Y and _Y*
-					for (int j = 0; j < n; j++) liDiff.add(liY_new.get(j) - liX.get(i).get(j));
+					double liDiff[] = new double[n]; // вектор разности _Y and _Y*
+					for (int j = 0; j < n; j++) liDiff[j] = liY_new[j] - liX[i][j];
 	
 					double currNorm = norm(liDiff); // Подсчёт нормы от разности 2-ух векторов
 	
@@ -410,35 +397,35 @@ public class Neuronet {
 	 * @param w_temp матрицы
 	 * @return её норма
 	 */
-	private static double normMatrix(List<ArrayList<Double>> w_temp) {
+	private static double normMatrix(double[][] w_temp) {
 		double summ = 0;
-		for (int i = 0; i < w_temp.size(); i++)
-			for (int j = 0; j < w_temp.get(i).size(); j++) {
-				summ += Math.pow(w_temp.get(i).get(j), 2);
+		for (int i = 0; i < w_temp.length; i++)
+			for (int j = 0; j < w_temp[i].length; j++) {
+				summ += Math.pow(w_temp[i][j], 2);
 			}
 		return Math.sqrt(summ);
 	}
 
 	/**
 	 * считает средние от вектора
-	 * @param liY входной вектор
+	 * @param liY_new входной вектор
 	 * @return его среднее
 	 */
-	private static double avg(List<Integer> liY) {
+	private static double avg(double[] liY_new) {
 		double summ = 0;
-		for (Integer i : liY)
-			summ += i;
-		return summ / liY.size();
+		for (int i = 0; i < liY_new.length; i++)
+			summ += liY_new[i];
+		return summ / liY_new.length;
 	}
 
 	/**
 	 * Евклидова норма Sqrt[ Summ[i*i, {i, 0, n*n}] ]
-	 * @param liRES входной вектор
+	 * @param diff входной вектор
 	 * @return его норма
 	 */
-	private static double norm(List<Double> liRES) {
+	private static double norm(double[] diff) {
 		double summ = 0;
-		for (Double i : liRES) summ += Math.pow(i, 2);
+		for (int i = 0; i < diff.length; i++) summ += Math.pow(diff[i], 2);
 		return Math.sqrt(summ);
 	}
 
@@ -447,66 +434,46 @@ public class Neuronet {
 	 */
 	private static void learnDeltaProjection() {
 
-		List<ArrayList<Double>> W_old = new ArrayList<ArrayList<Double>>(); // инициализируем матрицу W_old для хранения предыдущего шага
-		for (int i = 0; i < n; i++) {
-			List<Double> liRow = new ArrayList<>(n);
-			for (int j = 0; j < n; j++)
-				liRow.add(0.0);
-			W_old.add((ArrayList<Double>) liRow);
-		}
-		List<ArrayList<Double>> W_new = new ArrayList<ArrayList<Double>>(); // инициализируем матрицу W_new для хранения текущего шага
-		for (int i = 0; i < n; i++) {
-			List<Double> liRow = new ArrayList<>(n);
-			for (int j = 0; j < n; j++)
-				liRow.add(0.0);
-			W_new.add((ArrayList<Double>) liRow);
-		}
-		List<ArrayList<Double>> W_temp = new ArrayList<ArrayList<Double>>(); // инициализируем матрицу W_temp для хранения W_new - W_old для посчёдта нормы W_new - W_old
-		for (int i = 0; i < n; i++) {
-			List<Double> liRow = new ArrayList<>(n);
-			for (int j = 0; j < n; j++)
-				liRow.add(0.0);
-			W_temp.add((ArrayList<Double>) liRow);
-		}
+		double W_old[][] = new double[n][n]; // инициализируем матрицу W_old для хранения предыдущего шага
+		double W_new[][] = new double[n][n]; // инициализируем матрицу W_new для хранения текущего шага
+		double W_temp[][] = new double[n][n]; // инициализируем матрицу W_temp для хранения W_new - W_old для посчёдта нормы W_new - W_old
 
-		List<Double> liTemp = new ArrayList<>(n); // Просто вспомогательный вектор для расчётов
-		for (int j = 0; j < n; j++)
-			liTemp.add(0.0);
+		double liTemp[] = new double[n]; // Просто вспомогательный вектор для расчётов
 
 		while (true) {
 			for (int t = 0; t < imageName.length; t++) { // предявим каждый обучающий образ
 				for (int i = 0; i < n; i++)
 					for (int j = 0; j < n; j++)
-						W_old.get(i).set(j, W_new.get(i).get(j)); // копирование матрицы с предыдущего шага
+						W_old[i][j] = W_new[i][j]; // копирование матрицы с предыдущего шага
 
 				/* Подсчёт выражения W_i-1 * x_i */
 				for (int i = 0; i < n; i++) {
 					double summ = 0;
 					for (int j = 0; j < n; j++)
-						summ += W_old.get(i).get(j) * liX.get(t).get(j);
-					liTemp.set(i, summ);
+						summ += W_old[i][j] * liX[t][j];
+					liTemp[i] = summ;
 				}
 
 				/* Подсчёт x_i - W_i-1 * x_i */
 				for (int i = 0; i < n; i++)
-					liTemp.set(i, liX.get(t).get(i) - liTemp.get(i));
+					liTemp[i] = liX[t][i] - liTemp[i];
 
 				/* Подсчёт W_i-1 + (x_i - W_i-1 * x_i) * x_i^T * ny / n и запишем это в W_new */
 				for (int i = 0; i < n; i++)
 					for (int j = 0; j < n; j++)
-						W_new.get(i).set(j, W_old.get(i).get(j) + ny * (liTemp.get(i) * liX.get(t).get(j)) / n);
+						W_new[i][j] = W_old[i][j] + ny * (liTemp[i] * liX[t][j]) / n;
 			}
 
 			for (int i = 0; i < n; i++) // составим матрицу W_new - W_old для подсчёта нормы
 				for (int j = 0; j < n; j++)
-					W_temp.get(i).set(j, W_new.get(i).get(j) - W_old.get(i).get(j));
+					W_temp[i][j] = W_new[i][j] - W_old[i][j];
 			if (normMatrix(W_temp) <= EPS) break; // условие выхода - до стабилизации значения
 		}
 
 		// перегоним всё это в W
-		for (int i = 0; i < W_old.size(); i++)
-			for (int j = 0; j < W_old.get(i).size(); j++)
-				W.get(i).set(j, W_new.get(i).get(j));
+		for (int i = 0; i < W_old.length; i++)
+			for (int j = 0; j < W_old[i].length; j++)
+				W[i][j] = W_new[i][j];
 		System.out.println("Обучение закончнео, матрица весов стабилизировалась");
 	}
 
@@ -515,20 +482,9 @@ public class Neuronet {
 	 */
 	private static void learnProjection() {
 
-		List<ArrayList<Double>> W_old = new ArrayList<ArrayList<Double>>(); // инициализируем матрицу W_old для хранения предыдущего шага
-		for (int i = 0; i < n; i++) {
-			List<Double> liRow = new ArrayList<>(n);
-			for (int j = 0; j < n; j++)
-				liRow.add(0.0);
-			W_old.add((ArrayList<Double>) liRow);
-		}
-		List<ArrayList<Double>> W_new = new ArrayList<ArrayList<Double>>(); // инициализируем матрицу W_new для хранения текущего шага
-		for (int i = 0; i < n; i++) {
-			List<Double> liRow = new ArrayList<>(n);
-			for (int j = 0; j < n; j++)
-				liRow.add(0.0);
-			W_new.add((ArrayList<Double>) liRow);
-		}
+		double W_old[][] = new double[n][n]; // инициализируем матрицу W_old для хранения предыдущего шага
+		double W_new[][] = new double[n][n]; // инициализируем матрицу W_new для хранения текущего шага
+
 
 		/* неудачно!
 		 * попытка посчитать:
@@ -568,45 +524,45 @@ public class Neuronet {
 		 */
 		for (int t = 0; t < imageName.length; t++) {
 
-			for (int i = 0; i < W_old.size(); i++)
-				for (int j = 0; j < W_old.get(i).size(); j++)
-					W_old.get(i).set(j, W_new.get(i).get(j)); // копирование матрицы с предыдущего шага
+			for (int i = 0; i < W_old.length; i++)
+				for (int j = 0; j < W_old[i].length; j++)
+					W_old[i][j] = W_new[i][j]; // копирование матрицы с предыдущего шага
 
 			/* посчитаем знаменатель x_i^T * x_i - x_i^T * W_i-1 * x_i */
-			double denominator = internalScalarProduct(liX.get(t)); // выдаст: x_i^T * x_i
+			double denominator = internalScalarProduct(liX[t]); // выдаст: x_i^T * x_i
 			for (int i = 0; i < n; i++) {
 				double summ = 0;
 				for (int j = 0; j < n; j++) { // подсчёт i-ой компоненты вектора x_i^T * W_i-1
-					summ += liX.get(t).get(j) * W_old.get(j).get(i);
+					summ += liX[t][j] * W_old[j][i];
 				}
-				denominator -= liX.get(t).get(i) * summ; // покомпонентный вычет из x_i^T * x_i компоненты вектора x_i^T * W_i-1 умноженой на соответствующую компоненту вектора x_i
+				denominator -= liX[t][i] * summ; // покомпонентный вычет из x_i^T * x_i компоненты вектора x_i^T * W_i-1 умноженой на соответствующую компоненту вектора x_i
 			}
 
 			/* теперь посчитаем вектор W_i-1 * x_i - x_i */
-			List<Double> liTemp = new ArrayList<>(n);
+			double liTemp[] = new double[n];
 			for (int i = 0; i < n; i++) {
 				double temp = 0;
 				for (int j = 0; j < n; j++)
-					temp += W_old.get(i).get(j) * liX.get(t).get(j);
-				liTemp.add(temp);
+					temp += W_old[i][j] * liX[t][j];
+				liTemp[i] = temp;
 			} // только что посчитано выражение W_i-1 * x_i
 			// теперь вычтем из W_i-1 * x_i вектор x_i
 			for (int i = 0; i < n; i++)
-				liTemp.set(i, liTemp.get(i) - liX.get(t).get(i));
+				liTemp[i] = liTemp[i] - liX[t][i];
 			// получили вектор W_i-1 * x_i - x_i
 
 			/* посчитаем матрицу W_i покомпонентно, т.е. W_i[ij] = W_i-1[ij] + (W_i-1 * x_i - x_i)[i] * (W_i-1 * x_i - x_i)[j] / (x_i^T * x_i - x_i^T * W_i-1 * x_i) */
 			for (int i = 0; i < n; i++) {
 				for (int j = 0; j < n; j++) {
-					W_new.get(i).set(j, W_old.get(i).get(j) + liTemp.get(i) * liTemp.get(j) / denominator);
+					W_new[i][j] = W_old[i][j] + liTemp[i] * liTemp[j] / denominator;
 				}
 			}
 		}
 
 		// перегоним всё это в W
-		for (int i = 0; i < W_old.size(); i++)
-			for (int j = 0; j < W_old.get(i).size(); j++)
-				W.get(i).set(j, W_new.get(i).get(j));
+		for (int i = 0; i < W_old.length; i++)
+			for (int j = 0; j < W_old[i].length; j++)
+				W[i][j] = W_new[i][j];
 	}
 
 	/**
@@ -614,10 +570,10 @@ public class Neuronet {
 	 * @param liY вектор-столбец
 	 * @return результат скалярного произведения
 	 */
-	private static double internalScalarProduct(List<Double> liY) {
+	private static double internalScalarProduct(double liY[]) {
 		double summ = 0;
-		for (int i = 0; i < liY.size(); i++) {
-			summ += Math.pow(liY.get(i), 2);
+		for (int i = 0; i < liY.length; i++) {
+			summ += Math.pow(liY[i], 2);
 		}
 		return summ;
 	}
@@ -639,8 +595,8 @@ public class Neuronet {
 		for (int t = 0; t < imageName.length; t++)
 			for (int i = 0; i < n; i++) {
 				for (int j = 0; j < n; j++)
-					W.get(i).set(j, W.get(i).get(j) + (liX.get(t).get(i) * liX.get(t).get(j)) / n);
-				W.get(i).set(i, 0.0);
+					W[i][j] = W[i][j] + (liX[t][i] * liX[t][j]) / n;
+				W[i][i] = 0.0;
 			}
 	}
 
@@ -649,7 +605,7 @@ public class Neuronet {
 	 */
 	private static void learnStandart() { // W = Summ(x_k^t * x_k, {k, 1, imageName.length})
 		for (int i = 0; i < imageName.length; i++) {
-			add(W, liX.get(i));
+			add(W, liX[i]);
 		}
 	}
 
@@ -658,15 +614,15 @@ public class Neuronet {
 	 * Чистит диагональ
 	 * Складывает с матрицей W (w2)
 	 * @param w2 матрица W
-	 * @param aL вектор x_k из обучающей выборки
+	 * @param liX2 вектор x_k из обучающей выборки
 	 */
-	private static void add(List<ArrayList<Double>> w2, ArrayList<Double> aL) {
+	private static void add(double[][] w2, double[] liX2) {
 		// перемножим : x_k^T * x_k и сразу сложим с w2 и почистим диагональ на каждом шаге, чтоб быстрее было
 		// в результате получим симметричную матрицу A^T = A
 		for (int i = 0; i < n; i++) {
 			for (int j = 0; j < n; j++)
-				w2.get(i).set(j, w2.get(i).get(j) + aL.get(i) * aL.get(j));
-			w2.get(i).set(i, 0.0);
+				w2[i][j] = w2[i][j] + liX2[i] * liX2[j];
+			w2[i][i] = 0.0; // обнуляем диагональ
 		}
 	}
 
@@ -674,23 +630,18 @@ public class Neuronet {
 	 * обнулим и зададим размер матрице W
 	 */
 	private static void initW() {
-		for (int i = 0; i < n; i++) {
-			List<Double> liRow = new ArrayList<>(n);
-			for (int j = 0; j < n; j++)
-				liRow.add(0.0);
-			W.add((ArrayList<Double>) liRow);
-		}
+		W = new double[n][n]; // заполняет матрицу 0.0
 	}
 
 	/**
-	 * Вывод матрицы W в удобном для перегона в Вольфрам виде (для проверки)
+	 * Вывод матрицы matrix в удобном для перегона в Вольфрам виде (для проверки)
 	 */
-	private static void writeMatrix(List<ArrayList<Integer>> matrix) {
+	private static void writeMatrix(double matrix[][]) {
 		System.out.print("{");
 		for (int i = 0; i < n; i++) {
-			System.out.print("{" + W.get(i).get(0));
+			System.out.print("{" + matrix[i][0]);
 			for (int j = 1; j < n; j++)
-				System.out.print("," + W.get(i).get(j));
+				System.out.print("," + matrix[i][j]);
 			if (i != n - 1)
 				System.out.println("},");
 			else
@@ -701,12 +652,12 @@ public class Neuronet {
 
 	/**
 	 * Вывод вектора на экран в виде [-1, 1] в удобном для перегона в Вольфрам виде (для проверки)
-	 * @param y2 
+	 * @param liX2 
 	 */
-	private static void writeVector(List<Integer> y2) {
-		System.out.print("{" + y2.get(0));
-		for (int i = 1; i < y2.size(); i++) {
-			System.out.print(","+ y2.get(i));
+	private static void writeVector(double[] liX2) {
+		System.out.print("{" + liX2[0]);
+		for (int i = 1; i < liX2.length; i++) {
+			System.out.print(","+ liX2[i]);
 		}
 		System.out.println("}");
 	}
@@ -716,8 +667,7 @@ public class Neuronet {
 	 */
 	private static void loadImg() {
 		for (int i = 0; i < imageName.length; i++) { // пройдёмся по всем именам картинок
-			List<Double> liTemp = load(imageName[i]);
-			liX.add((ArrayList<Double>) liTemp);
+			liX[i] = load(imageName[i]);
 		}
 	}
 
@@ -726,16 +676,19 @@ public class Neuronet {
 	 * @param sValue имя картинки, лежащей в ".\\src\\main\\resources\\"
 	 * @return
 	 */
-	private static List<Double> load(String sValue) {
+	private static double[] load(String sValue) {
 		BufferedImage img = null;
 		try {
-		    img = ImageIO.read(new File(".\\src\\main\\resources\\" + sValue));
-		    n = img.getHeight() * img.getWidth();
+			img = ImageIO.read(new File(".\\src\\main\\resources\\" + sValue));
+			n = img.getHeight() * img.getWidth();
+			//if (liX != null) liX = new double[][];
 		} catch (IOException e) {
 			System.err.println("Не удалось найти файл " + sValue);
 		}
+
 		// перегоним картинки в массивы {-1, 1} // -1 Black : 1 White
-		List<Double> liTemp = new ArrayList<>();
+		double arTemp[] = new double[n];
+		int k = 0;
 		for (int x = 0; x < img.getHeight(); x++)
 			for (int y = 0; y < img.getWidth(); y++) {
 				int clr = img.getRGB(y, x); // достаём цвет пикселя
@@ -743,22 +696,23 @@ public class Neuronet {
 				int  green = (clr & 0x0000ff00) >> 8;
 				int  blue  =  clr & 0x000000ff;
 				int avg = (red + green + blue) / 3;
-				liTemp.add(avg * 2.0 / 255 - 1);
+				arTemp[k++] = avg * 2.0 / 255 - 1;
 			}
-		return liTemp;
+		return arTemp;
 	}
 
 	/**
 	 * Вывод вектора в изображение
-	 * @param liY_new входящий вектор
+	 * @param liTemp входящий вектор
+	 * @param name предпочтительное имя для сохранения
 	 */
-	private static void save(List<Double> liY_new, String name) {
+	private static void save(double[] liTemp, String name) {
 		BufferedImage img = new BufferedImage((int) Math.sqrt(n), (int) Math.sqrt(n), BufferedImage.TYPE_INT_RGB);
 		int k = 0;
 		int rgb;
 		for (int y = 0; y < Math.sqrt(n); y++)
 			for (int x = 0; x < Math.sqrt(n); x++) {
-				int temp = (int) ((liY_new.get(k) + 1) * 255 / 2); // перегон из [-1; 1] в [0; 255]
+				int temp = (int) ((liTemp[k] + 1) * 255 / 2); // перегон из [-1; 1] в [0; 255]
 				rgb = (new Color(temp, temp, temp)).getRGB(); // 255 оттенков серого
 				img.setRGB(x, y, rgb);
 				k++;
@@ -766,12 +720,12 @@ public class Neuronet {
 		try {
 			File outputfile = null;
 			if (name == null)
-				outputfile = new File("outputImg_Step_" + (tye++) + ".png");
+				outputfile = new File("outputImg_Step_" + tye + ".png");
 			else
 				outputfile = new File(name);
 		    ImageIO.write(img, "png", outputfile);
 		} catch (IOException e) { // когда чёт не пошло
-			System.err.println("Так получилось в общем, что кажись файл не захотел создаваться");
+			System.err.println("Так получилось в общем, что, кажись, файл не захотел создаваться");
 		}
 	}
 }
