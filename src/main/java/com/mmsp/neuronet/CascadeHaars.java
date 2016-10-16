@@ -24,6 +24,13 @@ public class CascadeHaars {
 	public static void main(String[] args) {
 		intensity = load(""); // TODO Вставить путь до изображения
 		calcIntegralPic();
+
+		/*
+		 * Далее гонять окно меняющегося размера по готовым выделенным областям и считать свёртки S=X/Y (для учёта масштаба), 
+		 * где Х - L т тёмной области признака Хаара, У - L от светлой области
+		 * в дальнейшем на исходном изображении для распознавании так же ездить окном разного размера
+		 * и считать свёртки, сравнивая их с уже расчитанными
+		 */
 	}
 
 	public static void calcIntegralPic() {
@@ -41,14 +48,17 @@ public class CascadeHaars {
 	 */
 	public static int L(int x1, int y1,int x2, int y2) {
 		// S(ABCD) = L(A) + L(С) — L(B) — L(D)
-		//	A B
-		//	D C
+		// +---+---+
+		// | A | B |
+		// +---+---+
+		// | D | C |
+		// +---+---+
 		//return L(x1, y1) + L(x2, y2) - L(x2, y1) - L(x1, y2); // Для не инициализированной матрицы integralPic[][]
 		return integralPic[y1][x1] + integralPic[y2][x2] - integralPic[y1][x2] - integralPic[y2][x1]; // Для инициализированной
 	}
 
 	/**
-	 * Заполняет матрицу интегрального представления изображения
+	 * Заполняет матрицу интегрального представления изображения рекурсивно
 	 * @param length
 	 * @param length2
 	 */
