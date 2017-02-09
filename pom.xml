@@ -20,7 +20,7 @@
             <manifest>
               <addClasspath>true</addClasspath>
               <classpathPrefix>lib/</classpathPrefix>
-              <mainClass>com.mmsp.neuronet.Neuronet</mainClass>
+              <mainClass>com.mmsp.neuronet.LSTM</mainClass>
             </manifest>
           </archive>
         </configuration>
