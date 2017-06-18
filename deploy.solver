@@ -1,0 +1,185 @@
+name WinnySvhnTrainTest
+input data
+input_dim 10
+input_dim 3
+input_dim 32
+input_dim 32
+layers {
+  bottom data
+  top conv15x5_s1
+  name conv15x5_s1
+  type CONVOLUTION
+  blobs_lr 1
+  blobs_lr 2
+  convolution_param {
+    num_output 64
+    kernel_size 5
+    stride 1
+    pad 2
+    weight_filler {
+      type xavier
+      std 0.0001
+    }
+  }
+}
+layers {
+  bottom conv15x5_s1
+  top conv15x5_s1
+  name conv1relu_5x5
+  type RELU
+}
+layers {
+  bottom conv15x5_s1
+  top pool13x3_s2
+  name pool13x3_s2
+  type POOLING
+  pooling_param {
+    pool MAX
+    kernel_size 3
+    stride 2
+  }
+}
+
+layers {
+  bottom pool13x3_s2
+  top conv25x5_s1
+  name conv25x5_s1
+  type CONVOLUTION
+  blobs_lr 1
+  blobs_lr 2
+  convolution_param {
+    num_output 64
+    kernel_size 5
+    stride 1
+    pad 2
+    weight_filler {
+      type xavier
+      std 0.01
+    }
+  }
+}
+layers {
+  bottom conv25x5_s1
+  top conv25x5_s1
+  name conv2relu_5x5
+  type RELU
+}
+layers {
+  bottom conv25x5_s1
+  top pool23x3_s2
+  name pool23x3_s2
+  type POOLING
+  pooling_param {
+    pool MAX
+    kernel_size 3
+    stride 2
+  }
+}
+
+layers {
+  bottom pool23x3_s2
+  top conv35x5_s1
+  name conv35x5_s1
+  type CONVOLUTION
+  blobs_lr 1
+  blobs_lr 2
+  convolution_param {
+    num_output 128
+    kernel_size 5
+    stride 1
+    pad 2
+    weight_filler {
+      type xavier
+      std 0.01
+    }
+  }
+}
+layers {
+  bottom conv35x5_s1
+  top conv35x5_s1
+  name conv3relu_5x5
+  type RELU
+}
+layers {
+  bottom conv35x5_s1
+  top pool33x3_s2
+  name pool33x3_s2
+  type POOLING
+  pooling_param {
+    pool MAX
+    kernel_size 3
+    stride 2
+  }
+}
+
+layers {
+  bottom pool33x3_s2
+  top ip13072
+  name ip13072
+  type INNER_PRODUCT
+  blobs_lr 1
+  blobs_lr 2
+  inner_product_param {
+    num_output 3072
+    weight_filler {
+      type gaussian
+      std 0.001
+    }
+    bias_filler {
+      type constant
+    }
+  }
+}
+layers {
+  bottom ip13072
+  top ip13072
+  name ip1relu_5x5
+  type RELU
+}
+
+layers {
+  bottom ip13072
+  top ip22048
+  name ip22048
+  type INNER_PRODUCT
+  blobs_lr 1
+  blobs_lr 2
+  inner_product_param {
+    num_output 2048
+    weight_filler {
+      type xavier
+      std 0.001
+    }
+    bias_filler {
+      type constant
+    }
+  }
+}
+layers {
+  bottom ip22048
+  top ip22048
+  name ip2relu_5x5
+  type RELU
+}
+
+layers {
+  bottom ip22048
+  top ip310
+  name ip310
+  type INNER_PRODUCT
+  blobs_lr 1
+  blobs_lr 2
+  inner_product_param {
+    num_output 10
+    weight_filler {
+      type xavier
+      std 0.1
+    }
+  }
+}
+layers {
+  name prob
+  type SOFTMAX
+  bottom ip310
+  top prob
+}

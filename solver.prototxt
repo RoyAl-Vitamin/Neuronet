@@ -1,0 +1,15 @@
+net: "/home/deploy/opt/SVHN/svhn/winny-f/winny_f_svhn.prototxt"
+test_iter: 1
+test_interval: 700
+base_lr: 0.01
+momentum: 0.9
+weight_decay: 0.004
+lr_policy: "inv"
+gamma: 0.0001
+power: 0.75
+solver_type: NESTEROV
+display: 100
+max_iter: 77000
+snapshot: 700
+snapshot_prefix: "/mnt/home/deploy/opt/SVHN/svhn/snapshots/winny_net/winny-F"
+solver_mode: GPU
